@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useGroupStore } from "../store/useGroupStore";
+import { useAuthStore } from "../store/useAuthStore";
 import MessageInput from "../components/MessageInput";
 import ChatHeader from "../components/ChatHeader";
 import MessageSkeleton from "../components/skeletons/MessageSkeleton";
-import { useAuthStore } from "../store/useAuthStore";
-import { formatMessageTime } from "../lib/utils";
 
 function ChatContainer() {
   const {
@@ -14,22 +14,24 @@ function ChatContainer() {
     selectedUser,
     subscribeToMessages,
     unsubscribeFromMessages,
-    blockedUsers,
   } = useChatStore();
+
+  const { selectedGroup } = useGroupStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
-  const isBlocked =
-    blockedUsers.includes(selectedUser?._id) ||
-    selectedUser?.blockedUsers?.includes(authUser?._id);
 
+  // Load messages when chat or group changes
   useEffect(() => {
-    getMessages(selectedUser._id);
+    const id = selectedGroup?._id || selectedUser?._id;
+    if (id) {
+      getMessages(id, !!selectedGroup);
+    }
 
     subscribeToMessages();
-
     return () => unsubscribeFromMessages();
   }, [
-    selectedUser._id,
+    selectedUser?._id,
+    selectedGroup?._id,
     getMessages,
     subscribeToMessages,
     unsubscribeFromMessages,
@@ -51,18 +53,27 @@ function ChatContainer() {
     );
   }
 
+  if (!selectedUser && !selectedGroup) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-500">
+          Select a conversation to start messaging
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+        {messages?.map((message) => (
           <div
             key={message._id}
             className={`chat ${
               message.senderId === authUser._id ? "chat-end" : "chat-start"
             }`}
-            ref={messageEndRef}
           >
             <div className="chat-image avatar">
               <div className="size-10 rounded-full border">
@@ -70,17 +81,26 @@ function ChatContainer() {
                   src={
                     message.senderId === authUser._id
                       ? authUser.profilePic || "/avatar.png"
+                      : selectedGroup
+                      ? message.sender?.profilePic || "/avatar.png"
                       : selectedUser.profilePic || "/avatar.png"
                   }
-                  alt="profilepic"
+                  alt="profile"
                 />
               </div>
             </div>
+
             <div className="chat-header mb-1">
+              {selectedGroup && message.senderId !== authUser._id && (
+                <span className="font-medium mr-2">
+                  {message.sender?.fullName}
+                </span>
+              )}
               <time className="text-xs opacity-50 ml-1">
-                {formatMessageTime(message.createdAt)}
+                {new Date(message.createdAt).toLocaleTimeString()}
               </time>
             </div>
+
             <div className="chat-bubble flex flex-col">
               {message.image && (
                 <img
@@ -93,9 +113,13 @@ function ChatContainer() {
             </div>
           </div>
         ))}
+        <div ref={messageEndRef} />
       </div>
 
-      <MessageInput isBlocked={isBlocked} />
+      <MessageInput
+        chatId={selectedGroup?._id || selectedUser?._id}
+        isGroupChat={!!selectedGroup}
+      />
     </div>
   );
 }
