@@ -2,6 +2,7 @@ import React from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { LogOut, MessageSquare, Settings, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import NotificationsDropdown from "./NotificationsDropdown";
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
@@ -22,6 +23,7 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {authUser && <NotificationsDropdown />}
             <Link
               to={"/settings"}
               className={`btn btn-sm gap-2 transition-colors`}

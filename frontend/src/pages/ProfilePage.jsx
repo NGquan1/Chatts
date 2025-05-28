@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Camera, Key, Mail, User } from "lucide-react";
+import ChangePasswordModal from "../components/modals/ChangePasswordModal";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
-  const [ selectedImg, setSelectedImg ] = useState(null);
+  const [selectedImg, setSelectedImg] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -98,7 +101,12 @@ const ProfilePage = () => {
             </div>
 
             <div className="space-y-1.5">
-            <button className="bg-slate-400 p-3 rounded-lg">Edit Password</button>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="btn btn-primary w-full"
+              >
+                Change Password
+              </button>
             </div>
           </div>
 
@@ -117,6 +125,11 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      <ChangePasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+      />
     </div>
   );
 };

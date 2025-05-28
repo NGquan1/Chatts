@@ -33,6 +33,24 @@ io.on("connection", (socket) => {
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 
+    // ==== ✅ GROUP MESSAGE REALTIME ====
+  socket.on("sendGroupMessage", ({ groupId, message }) => {
+    // Gửi tin nhắn mới đến tất cả socket đang join groupId đó
+    io.to(groupId).emit("newGroupMessage", message);
+  });
+
+  // Join group room khi người dùng vào nhóm
+  socket.on("joinGroup", (groupId) => {
+    socket.join(groupId);
+    console.log(`User ${userId} joined group ${groupId}`);
+  });
+
+  // Leave room nếu cần (tùy trường hợp)
+  socket.on("leaveGroup", (groupId) => {
+    socket.leave(groupId);
+    console.log(`User ${userId} left group ${groupId}`);
+  });
+
   socket.on("initiate-call", ({ to, from, caller, offer }) => {
     const toSocket = getReceiverSocketId(to);
     if (toSocket) {

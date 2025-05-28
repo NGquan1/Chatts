@@ -7,7 +7,6 @@ export const useGroupStore = create((set, get) => ({
   selectedGroup: null,
   isLoading: false,
 
-  // Get all groups
   getGroups: async () => {
     set({ isLoading: true });
     try {
@@ -21,7 +20,6 @@ export const useGroupStore = create((set, get) => ({
     }
   },
 
-  // Create new group
   createGroup: async (groupData) => {
     set({ isLoading: true });
     try {
@@ -61,24 +59,25 @@ export const useGroupStore = create((set, get) => ({
     }
   },
 
-  // Set selected group
+  inviteToGroup: async (groupId, userId) => {
+    try {
+      await axiosInstance.post(`/groups/${groupId}/invite`, { userId });
+      toast.success("Invitation sent successfully");
+    } catch (error) {
+      console.error("Error inviting to group:", error);
+      toast.error(error.response?.data?.message || "Failed to send invitation");
+      throw error;
+    }
+  },
+
   setSelectedGroup: (group) => {
-    // --- THÊM LOGGING Ở ĐÂY ---
-    console.log('[useGroupStore] setSelectedGroup - Incoming group:', group);
-    console.log('[useGroupStore] setSelectedGroup - Incoming group ID:', group?._id);
-    // --- KẾT THÚC LOGGING ---
     set({ selectedGroup: group });
   },
 
-  // Clear selected group
   clearSelectedGroup: () => {
-    // --- THÊM LOGGING Ở ĐÂY (NẾU SIDEBAR SỬ DỤNG HÀM NÀY KHI CHỌN USER) ---
-    console.log('[useGroupStore] clearSelectedGroup called. Setting selectedGroup to null.');
-    // --- KẾT THÚC LOGGING ---
     set({ selectedGroup: null });
   },
 
-  // Leave group
   leaveGroup: async (groupId) => {
     try {
       await axiosInstance.post(`/groups/${groupId}/leave`);
@@ -90,6 +89,25 @@ export const useGroupStore = create((set, get) => ({
       toast.success("Left group successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to leave group");
+      throw error;
+    }
+  },
+
+  deleteGroup: async (groupId) => {
+    try {
+      await axiosInstance.delete(`/groups/${groupId}`);
+
+      // Update state to remove deleted group
+      set((state) => ({
+        groups: state.groups.filter((g) => g._id !== groupId),
+        selectedGroup:
+          state.selectedGroup?._id === groupId ? null : state.selectedGroup,
+      }));
+
+      toast.success("Group deleted successfully");
+    } catch (error) {
+      console.error("Error in deleteGroup:", error);
+      toast.error(error.response?.data?.message || "Failed to delete group");
       throw error;
     }
   },
