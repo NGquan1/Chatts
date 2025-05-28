@@ -247,33 +247,30 @@ export const deleteMessage = async (req, res) => {
       return res.status(403).json({ message: "You cannot delete this message" });
     }
 
-    // Update message thành đã bị xóa
-    message.text = "Tin nhắn đã bị xóa";
+    message.text = "Message has been deleted";
     message.image = null;
-    message.revoked = true; // hoặc deleted
+    message.revoked = true; 
     await message.save();
 
     if (message.groupId) {
-      // Tin nhắn nhóm => emit tới room group
       io.to(message.groupId.toString()).emit("messageDeleted", {
         messageId,
-        deletedText: "Tin nhắn đã bị xóa",
+        deletedText: "Message has been deleted",
       });
     } else {
-      // Tin nhắn 1-1 => emit tới sender và receiver nếu đang online
       const senderSocketId = getReceiverSocketId(message.senderId.toString());
       const receiverSocketId = getReceiverSocketId(message.receiverId.toString());
 
       if (senderSocketId) {
         io.to(senderSocketId).emit("messageDeleted", {
           messageId,
-          deletedText: "Tin nhắn đã bị xóa",
+          deletedText: "Message has been deleted",
         });
       }
       if (receiverSocketId && receiverSocketId !== senderSocketId) {
         io.to(receiverSocketId).emit("messageDeleted", {
           messageId,
-          deletedText: "Tin nhắn đã bị xóa",
+          deletedText: "Message has been deleted",
         });
       }
     }

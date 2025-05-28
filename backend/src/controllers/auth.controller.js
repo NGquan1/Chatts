@@ -88,24 +88,53 @@ export const logout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { profilePic } = req.body;
+    const { profilePic, currentPassword, newPassword } = req.body;
     const userId = req.user._id;
 
-    if (!profilePic) {
-      return res.status(400).json({ message: "Profile pic is required" });
+    // Handle password change
+    if (currentPassword && newPassword) {
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          message: "New password must be at least 6 characters",
+        });
+      }
+
+      const user = await User.findById(userId);
+      const isPasswordCorrect = await bcrypt.compare(
+        currentPassword,
+        user.password
+      );
+
+      if (!isPasswordCorrect) {
+        return res
+          .status(400)
+          .json({ message: "Current password is incorrect" });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      await User.findByIdAndUpdate(userId, { password: hashedPassword });
+
+      return res.status(200).json({ message: "Password updated successfully" });
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { profilePic: uploadResponse.secure_url },
-      { new: true }
-    );
+    // Handle profile picture update
+    if (profilePic) {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic);
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { profilePic: uploadResponse.secure_url },
+        { new: true }
+      ).select("-password");
 
-    res.status(200).json(updatedUser);
+      return res.status(200).json(updatedUser);
+    }
+
+    return res.status(400).json({ message: "No updates provided" });
   } catch (error) {
     console.log("Error in update profile", error);
-    res.status(500).json({ message: "Interal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 

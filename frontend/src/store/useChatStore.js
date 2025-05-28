@@ -130,14 +130,14 @@ export const useChatStore = create((set, get) => ({
     set((state) => ({
       messages: state.messages.map((msg) =>
         msg._id === messageId
-          ? { ...msg, deleted: true, text: "Tin nhắn đã bị xóa", image: null }
+          ? { ...msg, deleted: true, text: "Message has been deleted", image: null }
           : msg
       ),
     }));
 
-    toast.success("Tin nhắn đã bị xóa");
+    toast.success("Message has been deleted");
   } catch (error) {
-    toast.error(error.response?.data?.message || "Không thể xóa tin nhắn");
+    toast.error(error.response?.data?.message || "Can't delete message");
     throw error;
   }
 },

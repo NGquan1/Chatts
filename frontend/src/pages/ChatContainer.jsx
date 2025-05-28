@@ -62,7 +62,6 @@ function ChatContainer() {
     }
   }, [messages]);
 
-  // Lắng nghe realtime xóa tin nhắn
   useEffect(() => {
     const handleMessageDeleted = ({ messageId, deletedText }) => {
       setMessages((prev) =>
@@ -145,7 +144,6 @@ function ChatContainer() {
                   {new Date(message.createdAt).toLocaleTimeString()}
                 </time>
 
-                {/* Nút xóa nếu là tin của mình và chưa bị xóa */}
                 {isOwnMessage && !isDeleted && (
                   <button
                     onClick={() => handleDeleteMessage(message._id)}
@@ -159,7 +157,7 @@ function ChatContainer() {
               {/* Nội dung tin nhắn */}
               <div className="chat-bubble flex flex-col">
                 {isDeleted ? (
-                  <p className="italic text-gray-500">Tin nhắn đã bị xóa</p>
+                  <p className="italic text-gray-500">Message has been deleted</p>
                 ) : (
                   <>
                     {message.image && (
