@@ -17,7 +17,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to get users");
     } finally {
       set({ isUserLoading: false });
     }
@@ -25,13 +25,16 @@ export const useChatStore = create((set, get) => ({
 
   sendGroupMessage: async (groupId, messageData) => {
     try {
-      const res = await axiosInstance.post(`/messages/group/${groupId}`, messageData);
-      set(state => ({
-        messages: [...state.messages, res.data]
-      }));
+      const res = await axiosInstance.post(
+        `/messages/group/${groupId}`,
+        messageData
+      );
+      // KHÔNG set lại messages ở đây, chờ socket cập nhật
       return res.data;
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send group message");
+      toast.error(
+        error.response?.data?.message || "Failed to send group message"
+      );
       throw error;
     }
   },
@@ -57,8 +60,9 @@ export const useChatStore = create((set, get) => ({
 
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
-    const isBlocked = get().isUserBlocked(selectedUser._id);
+    if (!selectedUser) return;
 
+    const isBlocked = get().isUserBlocked(selectedUser._id);
     if (isBlocked) {
       toast.error("Cannot send messages to blocked users");
       return;
@@ -85,25 +89,62 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
 
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser =
-        newMessage.senderId !== selectedUser._id;
-      if (isMessageSentFromSelectedUser) return;
-      set({
-        messages: [...get().messages, newMessage],
+      set((state) => {
+        if (state.messages.some((msg) => msg._id === newMessage._id)) {
+          return state;
+        }
+        return { messages: [...state.messages, newMessage] };
       });
     });
   },
-
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
+    if (!socket) return;
     socket.off("newMessage");
   },
 
+  subscribeToGroupMessages: (groupId) => {
+    const socket = useAuthStore.getState().socket;
+    if (!socket) return;
+
+    socket.emit("joinGroup", groupId);
+
+    socket.on("newGroupMessage", (message) => {
+      set((state) => {
+        if (state.messages.some((msg) => msg._id === message._id)) {
+          return state;
+        }
+        return { messages: [...state.messages, message] };
+      });
+    });
+  },
+  unsubscribeFromGroupMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    if (!socket) return;
+    socket.off("newGroupMessage");
+  },
+
+   deleteMessage: async (messageId) => {
+  try {
+    await axiosInstance.delete(`/messages/delete/${messageId}`);
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg._id === messageId
+          ? { ...msg, deleted: true, text: "Tin nhắn đã bị xóa", image: null }
+          : msg
+      ),
+    }));
+
+    toast.success("Tin nhắn đã bị xóa");
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Không thể xóa tin nhắn");
+    throw error;
+  }
+},
   setSelectedUser: (selectedUser) => set({ selectedUser }),
 
   blockUser: async (userId) => {
     try {
-      // Change from /api/users/block to /api/messages/block
       await axiosInstance.post(`/messages/block/${userId}`);
       set((state) => ({
         blockedUsers: [...state.blockedUsers, userId],
@@ -116,7 +157,6 @@ export const useChatStore = create((set, get) => ({
 
   unblockUser: async (userId) => {
     try {
-      // Change from /api/users/unblock to /api/messages/unblock
       await axiosInstance.post(`/messages/unblock/${userId}`);
       set((state) => ({
         blockedUsers: state.blockedUsers.filter((id) => id !== userId),

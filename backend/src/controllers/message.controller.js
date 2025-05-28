@@ -29,9 +29,21 @@ export const getMessages = async (req, res) => {
         { senderId: senderId, receiverId: userToChatId },
         { senderId: userToChatId, receiverId: senderId },
       ],
+    })
+    .populate("senderId", "fullName profilePic") // 👈 populate thêm thông tin người gửi
+    .sort({ createdAt: 1 });
+
+    // Format lại để gửi về đúng định dạng cần có `sender` (giống group chat)
+    const formattedMessages = messages.map(msg => {
+      const msgObj = msg.toObject();
+      return {
+        ...msgObj,
+        sender: msgObj.senderId,
+        senderId: msgObj.senderId._id
+      };
     });
 
-    res.status(200).json(messages);
+    res.status(200).json(formattedMessages);
   } catch (error) {
     console.log("Error in getMessages controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });
@@ -198,18 +210,78 @@ export const sendGroupMessage = async (req, res) => {
       .populate("senderId", "fullName profilePic");
 
     const messageObj = populatedMessage.toObject();
-
-    res.status(201).json({
+    const finalMessage = {
       ...messageObj,
       sender: messageObj.senderId,
       senderId: messageObj.senderId._id
-    });
+    };
 
+    // ✅ Emit socket tới tất cả thành viên trong group
+    io.to(groupId).emit("newGroupMessage", finalMessage);
+
+    res.status(201).json(finalMessage);
   } catch (error) {
     console.error("Error in sendGroupMessage:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Error sending group message",
-      error: error.message 
+      error: error.message
     });
+  }
+};
+
+export const deleteMessage = async (req, res) => {
+  try {
+    const messageId = req.params.messageId;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(messageId)) {
+      return res.status(400).json({ message: "Invalid message ID" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    if (message.senderId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "You cannot delete this message" });
+    }
+
+    // Update message thành đã bị xóa
+    message.text = "Tin nhắn đã bị xóa";
+    message.image = null;
+    message.revoked = true; // hoặc deleted
+    await message.save();
+
+    if (message.groupId) {
+      // Tin nhắn nhóm => emit tới room group
+      io.to(message.groupId.toString()).emit("messageDeleted", {
+        messageId,
+        deletedText: "Tin nhắn đã bị xóa",
+      });
+    } else {
+      // Tin nhắn 1-1 => emit tới sender và receiver nếu đang online
+      const senderSocketId = getReceiverSocketId(message.senderId.toString());
+      const receiverSocketId = getReceiverSocketId(message.receiverId.toString());
+
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messageDeleted", {
+          messageId,
+          deletedText: "Tin nhắn đã bị xóa",
+        });
+      }
+      if (receiverSocketId && receiverSocketId !== senderSocketId) {
+        io.to(receiverSocketId).emit("messageDeleted", {
+          messageId,
+          deletedText: "Tin nhắn đã bị xóa",
+        });
+      }
+    }
+
+    res.status(200).json({ message: "Message deleted successfully", messageId });
+
+  } catch (error) {
+    console.error("Error in deleteMessage controller:", error);
+    res.status(500).json({ message: "Server error deleting message" });
   }
 };
