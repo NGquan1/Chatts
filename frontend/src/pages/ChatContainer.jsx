@@ -60,6 +60,9 @@ function ChatContainer() {
       </div>
     );
   }
+  
+  // Log authUser info once
+  console.log("authUser:", authUser);
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
@@ -70,30 +73,34 @@ function ChatContainer() {
           const senderIdString = String(message.senderId?._id || message.senderId);
           const authUserIdString = String(authUser._id);
 
-          console.log("senderId:", senderIdString, "authUserId:", authUserIdString, "Equal:", senderIdString === authUserIdString);
+          const isOwnMessage = senderIdString === authUserIdString;
+
+          const profilePicToUse = isOwnMessage
+            ? authUser?.profilePic || "/avatar.png"
+            : message.sender?.profilePic || "/avatar.png";
+
+          // Log message + sender info
+          console.log("== Message ==");
+          console.log("senderId:", senderIdString, "authUserId:", authUserIdString, "Equal:", isOwnMessage);
+          console.log("message.sender:", message.sender);
+          console.log("profilePicToUse:", profilePicToUse);
 
           return (
             <div
               key={message._id}
-              className={`chat ${senderIdString === authUserIdString ? "chat-end" : "chat-start"}`}
+              className={`chat ${isOwnMessage ? "chat-end" : "chat-start"}`}
             >
               <div className="chat-image avatar">
                 <div className="size-10 rounded-full border">
                   <img
-                    src={
-                      senderIdString === authUserIdString
-                        ? authUser.profilePic || "/avatar.png"
-                        : selectedGroup
-                        ? message.sender?.profilePic || "/avatar.png"
-                        : selectedUser.profilePic || "/avatar.png"
-                    }
+                    src={profilePicToUse}
                     alt="profile"
                   />
                 </div>
               </div>
 
               <div className="chat-header mb-1">
-                {selectedGroup && senderIdString !== authUserIdString && (
+                {selectedGroup && !isOwnMessage && (
                   <span className="font-medium mr-2">{message.sender?.fullName}</span>
                 )}
                 <time className="text-xs opacity-50 ml-1">

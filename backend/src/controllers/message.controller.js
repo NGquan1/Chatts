@@ -131,18 +131,15 @@ export const getGroupMessages = async (req, res) => {
     const { groupId } = req.params;
     console.log("Fetching messages for group:", groupId);
 
-    // Validate groupId format
     if (!mongoose.Types.ObjectId.isValid(groupId)) {
       return res.status(400).json({ message: "Invalid group ID format" });
     }
 
-    // Check if group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Check if user is member of group
     const userId = req.user._id;
     const isMember = group.members.some(memberId => 
       memberId.toString() === userId.toString()
@@ -156,8 +153,18 @@ export const getGroupMessages = async (req, res) => {
       .populate("senderId", "fullName profilePic")
       .sort({ createdAt: 1 });
 
-    console.log(`Found ${messages.length} messages for group ${groupId}`);
-    res.status(200).json(messages);
+    // Chuyển senderId -> sender để frontend dùng
+    const formattedMessages = messages.map(msg => {
+      const msgObj = msg.toObject();
+      return {
+        ...msgObj,
+        sender: msgObj.senderId,
+        senderId: msgObj.senderId._id
+      };
+    });
+
+    console.log(`Found ${formattedMessages.length} messages for group ${groupId}`);
+    res.status(200).json(formattedMessages);
 
   } catch (error) {
     console.error("Error in getGroupMessages:", error);
@@ -174,12 +181,10 @@ export const sendGroupMessage = async (req, res) => {
     const { text, image } = req.body;
     const senderId = req.user._id;
 
-    // Validate groupId format
     if (!mongoose.Types.ObjectId.isValid(groupId)) {
       return res.status(400).json({ message: "Invalid group ID format" });
     }
 
-    // Create new message
     const newMessage = new Message({
       senderId,
       groupId,
@@ -189,11 +194,16 @@ export const sendGroupMessage = async (req, res) => {
 
     await newMessage.save();
 
-    // Populate and return the new message
     const populatedMessage = await Message.findById(newMessage._id)
       .populate("senderId", "fullName profilePic");
 
-    res.status(201).json(populatedMessage);
+    const messageObj = populatedMessage.toObject();
+
+    res.status(201).json({
+      ...messageObj,
+      sender: messageObj.senderId,
+      senderId: messageObj.senderId._id
+    });
 
   } catch (error) {
     console.error("Error in sendGroupMessage:", error);

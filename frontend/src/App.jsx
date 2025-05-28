@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import { Navigate, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
@@ -6,9 +6,7 @@ import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import SettingPage from "./pages/SettingPage";
 import ProfilePage from "./pages/ProfilePage";
-import { axiosInstance } from "./lib/axios";
 import { useAuthStore } from "./store/useAuthStore";
-import { useVideoCallStore } from "./store/useVideoCallStore";
 import { useChatStore } from "./store/useChatStore";
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";

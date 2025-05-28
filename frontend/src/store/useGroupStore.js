@@ -59,6 +59,17 @@ export const useGroupStore = create((set, get) => ({
     }
   },
 
+  inviteToGroup: async (groupId, userId) => {
+    try {
+      await axiosInstance.post(`/groups/${groupId}/invite`, { userId });
+      toast.success("Invitation sent successfully");
+    } catch (error) {
+      console.error("Error inviting to group:", error);
+      toast.error(error.response?.data?.message || "Failed to send invitation");
+      throw error;
+    }
+  },
+
   setSelectedGroup: (group) => {
     set({ selectedGroup: group });
   },
@@ -78,6 +89,25 @@ export const useGroupStore = create((set, get) => ({
       toast.success("Left group successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to leave group");
+      throw error;
+    }
+  },
+
+  deleteGroup: async (groupId) => {
+    try {
+      await axiosInstance.delete(`/groups/${groupId}`);
+
+      // Update state to remove deleted group
+      set((state) => ({
+        groups: state.groups.filter((g) => g._id !== groupId),
+        selectedGroup:
+          state.selectedGroup?._id === groupId ? null : state.selectedGroup,
+      }));
+
+      toast.success("Group deleted successfully");
+    } catch (error) {
+      console.error("Error in deleteGroup:", error);
+      toast.error(error.response?.data?.message || "Failed to delete group");
       throw error;
     }
   },
