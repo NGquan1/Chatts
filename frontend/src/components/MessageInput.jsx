@@ -3,11 +3,11 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MessageInput = ({ isBlocked }) => {
+const MessageInput = ({ isBlocked, chatId, isGroupChat }) => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, sendGroupMessage } = useChatStore();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -31,20 +31,25 @@ const MessageInput = ({ isBlocked }) => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (isBlocked || (!text.trim() && !imagePreview)) return;
-    if (!text.trim() && !imagePreview) return;
 
     try {
-      await sendMessage({
+      const messageData = {
         text: text.trim(),
         image: imagePreview,
-      });
+      };
 
-      //Clear form
+      if (isGroupChat) {
+        await sendGroupMessage(chatId, messageData);
+      } else {
+        await sendMessage(messageData);
+      }
+
+      // Clear form
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
-      console.log("Failed to send message", error);
+      toast.error("Failed to send message");
     }
   };
 

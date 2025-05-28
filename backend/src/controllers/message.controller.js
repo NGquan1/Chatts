@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
+import Group from "../models/group.model.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 
@@ -124,4 +126,80 @@ export const sendMessage = async (req, res) => {
   }
 };
 
+export const getGroupMessages = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    console.log("Fetching messages for group:", groupId);
 
+    // Validate groupId format
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ message: "Invalid group ID format" });
+    }
+
+    // Check if group exists
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    // Check if user is member of group
+    const userId = req.user._id;
+    const isMember = group.members.some(memberId => 
+      memberId.toString() === userId.toString()
+    );
+
+    if (!isMember) {
+      return res.status(403).json({ message: "You are not a member of this group" });
+    }
+
+    const messages = await Message.find({ groupId })
+      .populate("senderId", "fullName profilePic")
+      .sort({ createdAt: 1 });
+
+    console.log(`Found ${messages.length} messages for group ${groupId}`);
+    res.status(200).json(messages);
+
+  } catch (error) {
+    console.error("Error in getGroupMessages:", error);
+    res.status(500).json({ 
+      message: "Error fetching group messages",
+      error: error.message 
+    });
+  }
+};
+
+export const sendGroupMessage = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { text, image } = req.body;
+    const senderId = req.user._id;
+
+    // Validate groupId format
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ message: "Invalid group ID format" });
+    }
+
+    // Create new message
+    const newMessage = new Message({
+      senderId,
+      groupId,
+      text,
+      image
+    });
+
+    await newMessage.save();
+
+    // Populate and return the new message
+    const populatedMessage = await Message.findById(newMessage._id)
+      .populate("senderId", "fullName profilePic");
+
+    res.status(201).json(populatedMessage);
+
+  } catch (error) {
+    console.error("Error in sendGroupMessage:", error);
+    res.status(500).json({ 
+      message: "Error sending group message",
+      error: error.message 
+    });
+  }
+};

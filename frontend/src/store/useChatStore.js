@@ -23,13 +23,28 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  getMessages: async (userId) => {
+  sendGroupMessage: async (groupId, messageData) => {
+    try {
+      const res = await axiosInstance.post(`/messages/group/${groupId}`, messageData);
+      set(state => ({
+        messages: [...state.messages, res.data]
+      }));
+      return res.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send group message");
+      throw error;
+    }
+  },
+
+  getMessages: async (id, isGroup = false) => {
     set({ isMessagesLoading: true });
     try {
-      const res = await axiosInstance.get(`/messages/${userId}`);
+      const endpoint = isGroup ? `/messages/group/${id}` : `/messages/${id}`;
+      const res = await axiosInstance.get(endpoint);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
+      set({ messages: [] });
     } finally {
       set({ isMessagesLoading: false });
     }

@@ -7,6 +7,8 @@ import {
   blockUser,
   unblockUser,
   getBlockedUsers,
+  sendGroupMessage,
+  getGroupMessages,
 } from "../controllers/message.controller.js";
 
 
@@ -16,6 +18,9 @@ router.get("/users", protectRoute, getUserForSidebar);
 router.post("/block/:id", protectRoute, blockUser);
 router.post("/unblock/:id", protectRoute, unblockUser);
 router.get("/blocked", protectRoute, getBlockedUsers);
+
+router.get("/group/:groupId", protectRoute, getGroupMessages);
+router.post("/group/:groupId", protectRoute, sendGroupMessage);
 
 router.get("/:id", protectRoute, getMessages);
 router.post("/send/:id", protectRoute, sendMessage);

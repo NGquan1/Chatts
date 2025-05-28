@@ -56,9 +56,7 @@ function ChatContainer() {
   if (!selectedUser && !selectedGroup) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-500">
-          Select a conversation to start messaging
-        </p>
+        <p className="text-gray-500">Select a conversation to start messaging</p>
       </div>
     );
   }
@@ -68,51 +66,54 @@ function ChatContainer() {
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages?.map((message) => (
-          <div
-            key={message._id}
-            className={`chat ${
-              message.senderId === authUser._id ? "chat-end" : "chat-start"
-            }`}
-          >
-            <div className="chat-image avatar">
-              <div className="size-10 rounded-full border">
-                <img
-                  src={
-                    message.senderId === authUser._id
-                      ? authUser.profilePic || "/avatar.png"
-                      : selectedGroup
-                      ? message.sender?.profilePic || "/avatar.png"
-                      : selectedUser.profilePic || "/avatar.png"
-                  }
-                  alt="profile"
-                />
+        {messages?.map((message) => {
+          const senderIdString = String(message.senderId?._id || message.senderId);
+          const authUserIdString = String(authUser._id);
+
+          console.log("senderId:", senderIdString, "authUserId:", authUserIdString, "Equal:", senderIdString === authUserIdString);
+
+          return (
+            <div
+              key={message._id}
+              className={`chat ${senderIdString === authUserIdString ? "chat-end" : "chat-start"}`}
+            >
+              <div className="chat-image avatar">
+                <div className="size-10 rounded-full border">
+                  <img
+                    src={
+                      senderIdString === authUserIdString
+                        ? authUser.profilePic || "/avatar.png"
+                        : selectedGroup
+                        ? message.sender?.profilePic || "/avatar.png"
+                        : selectedUser.profilePic || "/avatar.png"
+                    }
+                    alt="profile"
+                  />
+                </div>
+              </div>
+
+              <div className="chat-header mb-1">
+                {selectedGroup && senderIdString !== authUserIdString && (
+                  <span className="font-medium mr-2">{message.sender?.fullName}</span>
+                )}
+                <time className="text-xs opacity-50 ml-1">
+                  {new Date(message.createdAt).toLocaleTimeString()}
+                </time>
+              </div>
+
+              <div className="chat-bubble flex flex-col">
+                {message.image && (
+                  <img
+                    src={message.image}
+                    alt="Attachment"
+                    className="sm:max-w-[200px] rounded-md mb-2"
+                  />
+                )}
+                {message.text && <p>{message.text}</p>}
               </div>
             </div>
-
-            <div className="chat-header mb-1">
-              {selectedGroup && message.senderId !== authUser._id && (
-                <span className="font-medium mr-2">
-                  {message.sender?.fullName}
-                </span>
-              )}
-              <time className="text-xs opacity-50 ml-1">
-                {new Date(message.createdAt).toLocaleTimeString()}
-              </time>
-            </div>
-
-            <div className="chat-bubble flex flex-col">
-              {message.image && (
-                <img
-                  src={message.image}
-                  alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
-                />
-              )}
-              {message.text && <p>{message.text}</p>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messageEndRef} />
       </div>
 
