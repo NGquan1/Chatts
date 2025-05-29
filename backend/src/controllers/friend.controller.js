@@ -72,3 +72,48 @@ export const acceptFriendRequest = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const removeFriend = async (req, res) => {
+  try {
+    const { friendId } = req.params;
+    const userId = req.user._id;
+
+    // Remove friend from both users' friends arrays
+    await User.findByIdAndUpdate(userId, {
+      $pull: { friends: friendId },
+    });
+
+    await User.findByIdAndUpdate(friendId, {
+      $pull: { friends: userId },
+    });
+
+    // Get updated user data
+    const updatedUser = await User.findById(userId)
+      .select("-password")
+      .populate("friends", "-password");
+
+    // Emit socket event for realtime update
+    if (req.app.get("io")) {
+      const io = req.app.get("io");
+
+      // Notify both users
+      io.to(userId).emit("friendRemoved", {
+        friendId,
+        message: "Friend removed successfully",
+      });
+
+      io.to(friendId).emit("friendRemoved", {
+        friendId: userId,
+        message: "You were removed from friends list",
+      });
+    }
+
+    res.status(200).json({
+      message: "Friend removed successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error in removeFriend:", error);
+    res.status(500).json({ message: "Failed to remove friend" });
+  }
+};

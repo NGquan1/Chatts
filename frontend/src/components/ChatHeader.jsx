@@ -1,16 +1,17 @@
 import React, { useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { X, Video, UserPlus } from "lucide-react";
+import { X, Video, UserPlus, UserMinus, Trash2 } from "lucide-react";
 import { useVideoCallStore } from "../store/useVideoCallStore";
 import { useGroupStore } from "../store/useGroupStore";
 import InviteGroupModal from "./modals/InviteGroupModal";
 import ConfirmModal from "./modals/ConfirmModal";
-import { Trash2 } from "lucide-react";
+import { useFriendStore } from "../store/useFriendStore";
 
 const ChatHeader = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
   const {
     selectedUser,
     setSelectedUser,
@@ -20,6 +21,7 @@ const ChatHeader = () => {
   } = useChatStore();
   const { authUser, onlineUsers = [] } = useAuthStore();
   const { selectedGroup, setSelectedGroup, deleteGroup } = useGroupStore();
+  const { removeFriend } = useFriendStore();
 
   // Exit early if no chat is selected
   if (!selectedUser && !selectedGroup) return null;
@@ -59,8 +61,23 @@ const ChatHeader = () => {
     }
   };
 
+  const handleUnfriend = async () => {
+  try {
+    if (!selectedUser?._id) return;
+    await removeFriend(selectedUser._id);
+    setShowUnfriendConfirm(false);
+    setSelectedUser(null);
+  } catch (error) {
+    console.error("Error unfriending:", error);
+    toast.error("Failed to remove friend");
+  }
+};
+
+
   // Add this check
-  const isGroupAdmin = authUser?._id && selectedGroup?.admin?._id && 
+  const isGroupAdmin =
+    authUser?._id &&
+    selectedGroup?.admin?._id &&
     authUser._id === selectedGroup.admin._id;
 
   return (
@@ -83,10 +100,21 @@ const ChatHeader = () => {
             </div>
 
             {/* User/Group info */}
-            <div>
-              <h3 className="font-medium">
-                {isGroup ? selectedGroup?.name : selectedUser?.fullName}
-              </h3>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h3 className="font-medium">
+                  {isGroup ? selectedGroup?.name : selectedUser?.fullName}
+                </h3>
+                {!isGroup && (
+                  <button
+                    onClick={() => setShowUnfriendConfirm(true)}
+                    className="btn btn-ghost btn-xs text-error"
+                    title="Remove friend"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
               <p className="text-sm text-base-content/70">
                 {isGroup
                   ? `${selectedGroup?.members?.length || 0} members`
@@ -189,6 +217,14 @@ const ChatHeader = () => {
         onConfirm={handleDeleteGroup}
         title="Delete Group"
         message="Are you sure you want to delete this group? This action cannot be undone."
+      />
+
+      <ConfirmModal
+        isOpen={showUnfriendConfirm}
+        onClose={() => setShowUnfriendConfirm(false)}
+        onConfirm={handleUnfriend}
+        title="Remove Friend"
+        message="Are you sure you want to remove this friend?"
       />
     </>
   );

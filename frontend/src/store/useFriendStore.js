@@ -3,11 +3,12 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 
-export const useFriendStore = create((set) => ({
+export const useFriendStore = create((set, get) => ({
+  friends: [], 
+
   sendFriendRequest: async (userId) => {
     try {
       const response = await axiosInstance.post(`/friends/request/${userId}`);
-
       if (response.status === 200) {
         toast.success("Friend request sent!");
       }
@@ -18,16 +19,13 @@ export const useFriendStore = create((set) => ({
       );
     }
   },
+
   acceptFriendRequest: async (userId) => {
     try {
-      if (!userId) {
-        throw new Error("User ID is required");
-      }
-
+      if (!userId) throw new Error("User ID is required");
       const response = await axiosInstance.post(`/friends/accept/${userId}`);
-      
+
       if (response.status === 200) {
-        // Update local state
         const { authUser } = useAuthStore.getState();
         if (authUser) {
           useAuthStore.setState({
@@ -44,7 +42,9 @@ export const useFriendStore = create((set) => ({
       }
     } catch (error) {
       console.error("Error accepting friend request:", error);
-      toast.error(error.response?.data?.message || "Could not accept friend request");
+      toast.error(
+        error.response?.data?.message || "Could not accept friend request"
+      );
     }
   },
 
@@ -52,12 +52,11 @@ export const useFriendStore = create((set) => ({
     try {
       const response = await axiosInstance.post(`/friends/reject/${userId}`);
       if (response.status === 200) {
-        // Update local state
         const authUser = useAuthStore.getState().authUser;
         useAuthStore.setState({
           authUser: {
             ...authUser,
-            friendRequests: authUser.friendRequests.filter(
+            friendRequests: (authUser.friendRequests || []).filter(
               (id) => id !== userId
             ),
           },
@@ -67,5 +66,39 @@ export const useFriendStore = create((set) => ({
       console.error("Error rejecting friend request:", error);
       toast.error("Could not reject friend request");
     }
+  },
+
+  removeFriend: async (friendId) => {
+    try {
+      await axiosInstance.delete(`/friends/remove/${friendId}`);
+
+      set((state) => ({
+        friends: (state.friends || []).filter(
+          (friend) => friend._id !== friendId
+        ),
+      }));
+
+      toast.success("Friend removed successfully");
+    } catch (error) {
+      console.error("Error in removeFriend:", error);
+      toast.error(
+        error.response?.data?.message || "Error removing friend"
+      );
+    }
+  },
+
+  initializeFriendSocket: () => {
+    window.socket?.on("friendRemoved", ({ friendId, message }) => {
+      set((state) => ({
+        friends: (state.friends || []).filter(
+          (friend) => friend._id !== friendId
+        ),
+      }));
+      toast.success(message);
+    });
+  },
+
+  cleanup: () => {
+    window.socket?.off("friendRemoved");
   },
 }));
