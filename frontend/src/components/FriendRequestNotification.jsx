@@ -1,16 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useFriendStore } from "../store/useFriendStore";
 
 const FriendRequestNotification = () => {
   const { authUser } = useAuthStore();
-  const { acceptFriendRequest } = useFriendStore();
+  const { acceptFriendRequest, declineFriendRequest } = useFriendStore();
+  const [loading, setLoading] = useState(false);
 
   if (!authUser?.friendRequests?.length) return null;
 
   const handleAccept = async (userId) => {
-    if (userId) {
+    if (!userId) return;
+    setLoading(true);
+    try {
       await acceptFriendRequest(userId);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecline = async (userId) => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      await declineFriendRequest(userId);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -24,11 +39,18 @@ const FriendRequestNotification = () => {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => handleAccept(requestId)}
+                  disabled={loading}
                   className="btn btn-sm btn-primary"
                 >
-                  Accept
+                  {loading ? "Processing..." : "Accept"}
                 </button>
-                <button className="btn btn-sm btn-ghost">Decline</button>
+                <button
+                  onClick={() => handleDecline(requestId)}
+                  disabled={loading}
+                  className="btn btn-sm btn-error"
+                >
+                  {loading ? "Processing..." : "Decline"}
+                </button>
               </div>
             </div>
           </div>

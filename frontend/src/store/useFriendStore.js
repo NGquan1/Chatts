@@ -68,6 +68,23 @@ export const useFriendStore = create((set, get) => ({
     }
   },
 
+  declineFriendRequest: async (userId) => {
+    try {
+      await axiosInstance.post(`/friends/decline/${userId}`);
+      
+      // Remove the request from local state
+      set((state) => ({
+        friendRequests: state.friendRequests.filter(
+          request => request.sender._id !== userId
+        )
+      }));
+
+      toast.success("Friend request declined");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error declining friend request");
+    }
+  },
+
   removeFriend: async (friendId) => {
     try {
       await axiosInstance.delete(`/friends/remove/${friendId}`);

@@ -149,7 +149,7 @@ function ChatContainer() {
                     onClick={() => handleDeleteMessage(message._id)}
                     className="text-xs text-red-500 hover:underline ml-2"
                   >
-                    Xóa
+                    Delete
                   </button>
                 )}
               </div>

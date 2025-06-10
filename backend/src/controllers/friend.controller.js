@@ -73,6 +73,44 @@ export const acceptFriendRequest = async (req, res) => {
   }
 };
 
+export const declineFriendRequest = async (req, res) => {
+  try {
+    const { userId } = req.params; // ID of user who sent the request
+    const receiverId = req.user._id; // Current user's ID
+
+    // Validate user IDs
+    if (!userId || !receiverId) {
+      return res.status(400).json({ message: "Invalid user IDs" });
+    }
+
+    // Check if friend request exists
+    const receiver = await User.findById(receiverId);
+    if (!receiver.friendRequests.includes(userId)) {
+      return res.status(400).json({ message: "No friend request found" });
+    }
+
+    // Remove the friend request
+    await User.findByIdAndUpdate(receiverId, {
+      $pull: { friendRequests: userId },
+    });
+
+    // Emit socket event for real-time update
+    const io = req.app.get("io");
+    if (io) {
+      io.to(userId).emit("friend_request_declined", {
+        userId: receiverId,
+        message: "Friend request was declined",
+      });
+    }
+
+    res.status(200).json({ message: "Friend request declined successfully" });
+  } catch (error) {
+    console.error("Error in declineFriendRequest:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
 export const removeFriend = async (req, res) => {
   try {
     const { friendId } = req.params;
@@ -117,3 +155,4 @@ export const removeFriend = async (req, res) => {
     res.status(500).json({ message: "Failed to remove friend" });
   }
 };
+
