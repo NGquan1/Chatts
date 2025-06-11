@@ -12,15 +12,22 @@ import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import { useThemeStore } from "./store/useThemeStore";
 import VideoCallModal from "./components/VideoCallModal";
-import { useVideoCallSocket } from './hooks/useVideoCallSocket';
+import { useVideoCallSocket } from "./hooks/useVideoCallSocket";
 import FriendRequestNotification from "./components/FriendRequestNotification";
+import { useFriendStore } from "./store/useFriendStore";
 
 const App = () => {
+  const { initializeFriendSocket, cleanup } = useFriendStore();
   const { getBlockedUsers } = useChatStore();
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
   const { theme } = useThemeStore();
 
   useVideoCallSocket();
+
+  useEffect(() => {
+    initializeFriendSocket();
+    return () => cleanup();
+  }, []);
 
   useEffect(() => {
     checkAuth();

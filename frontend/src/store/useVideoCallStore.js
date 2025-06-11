@@ -1,18 +1,18 @@
 import { create } from "zustand";
 import { useAuthStore } from "./useAuthStore";
-import { useChatStore } from "./useChatStore"; // Add this import
+import { useChatStore } from "./useChatStore";
 import toast from "react-hot-toast";
 
 export const useVideoCallStore = create((set, get) => ({
   isCallModalOpen: false,
   localStream: null,
   remoteStream: null,
-  callStatus: null, // 'calling', 'receiving', 'ongoing', null
+  callStatus: null,
   caller: null,
   receiver: null,
   peerConnection: null,
-  offer: null, // Store the offer
-  iceCandidatesQueue: [], // Add this to store ICE candidates
+  offer: null,
+  iceCandidatesQueue: [],
 
   initializePeerConnection: () => {
     const peerConnection = new RTCPeerConnection({
@@ -22,7 +22,6 @@ export const useVideoCallStore = create((set, get) => ({
       ],
     });
 
-    // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         const socket = useAuthStore.getState().socket;
@@ -36,10 +35,15 @@ export const useVideoCallStore = create((set, get) => ({
       }
     };
 
-    // Handle receiving remote stream
     peerConnection.ontrack = (event) => {
-      console.log("Received remote stream");
-      set({ remoteStream: event.streams[0] });
+      const remoteStream = event.streams[0];
+      console.log("📥 Callee received track:", remoteStream);
+
+      set({ remoteStream });
+
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
     };
 
     set({ peerConnection });
@@ -48,7 +52,6 @@ export const useVideoCallStore = create((set, get) => ({
 
   startCall: async (receiverId) => {
     try {
-      // Check if user is blocked
       const { blockedUsers } = useChatStore.getState();
       const isBlocked = blockedUsers.includes(receiverId);
 
@@ -77,7 +80,7 @@ export const useVideoCallStore = create((set, get) => ({
         to: receiverId,
         from: authUser._id,
         caller: authUser,
-        offer, // Send the entire offer object
+        offer,
       });
 
       set({
@@ -94,12 +97,11 @@ export const useVideoCallStore = create((set, get) => ({
   },
 
   receiveCall: (caller, offer) => {
-    // Add offer parameter
     set({
       isCallModalOpen: true,
       callStatus: "receiving",
       caller,
-      offer, // Store the offer
+      offer,
     });
   },
 
@@ -108,7 +110,6 @@ export const useVideoCallStore = create((set, get) => ({
     if (peerConnection?.remoteDescription) {
       await peerConnection.addIceCandidate(candidate);
     } else {
-      // Queue the candidate if remote description is not set yet
       set((state) => ({
         iceCandidatesQueue: [...state.iceCandidatesQueue, candidate],
       }));
@@ -138,14 +139,16 @@ export const useVideoCallStore = create((set, get) => ({
       });
 
       const peerConnection = get().initializePeerConnection();
+      peerConnection.ontrack = (event) => {
+        console.log("📥 Callee received track:", event.streams[0]);
+        set({ remoteStream: event.streams[0] });
+      };
 
-      // Add local stream tracks to peer connection
       stream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, stream);
       });
 
       const { offer } = get();
-      // Ensure offer is valid before setting remote description
       if (!offer) {
         throw new Error("No offer available");
       }
@@ -179,23 +182,19 @@ export const useVideoCallStore = create((set, get) => ({
     const { localStream, peerConnection, caller, receiver } = get();
     const socket = useAuthStore.getState().socket;
 
-    // Stop all tracks in local stream
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
 
-    // Close and cleanup peer connection
     if (peerConnection) {
       peerConnection.close();
     }
 
-    // Emit call ended event
     const to = caller?._id || receiver;
     if (to) {
       socket.emit("call-ended", { to });
     }
 
-    // Reset all state
     set({
       isCallModalOpen: false,
       localStream: null,

@@ -24,15 +24,15 @@ const VideoCallModal = () => {
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      console.log("Setting remote video stream");
-      remoteVideoRef.current.srcObject = remoteStream;
-    }
+    setTimeout(() => {
+      if (remoteVideoRef.current && remoteStream) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+    }, 300);
   }, [remoteStream]);
 
   if (!isCallModalOpen) return null;
 
-  // Show incoming call notification
   if (callStatus === "receiving") {
     return (
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
@@ -40,10 +40,16 @@ const VideoCallModal = () => {
           <h3 className="text-xl mb-4">Incoming Video Call</h3>
           <p className="mb-6">{caller?.fullName} is calling you...</p>
           <div className="flex justify-center gap-4">
-            <button onClick={acceptCall} className="btn btn-success btn-circle btn-lg">
+            <button
+              onClick={acceptCall}
+              className="btn btn-success btn-circle btn-lg"
+            >
               <Phone className="h-6 w-6" />
             </button>
-            <button onClick={rejectCall} className="btn btn-error btn-circle btn-lg">
+            <button
+              onClick={rejectCall}
+              className="btn btn-error btn-circle btn-lg"
+            >
               <PhoneOff className="h-6 w-6" />
             </button>
           </div>
@@ -52,7 +58,6 @@ const VideoCallModal = () => {
     );
   }
 
-  // Show video call interface
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div className="bg-base-300 rounded-lg p-4 w-full max-w-4xl">

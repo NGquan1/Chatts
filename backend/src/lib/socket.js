@@ -98,12 +98,18 @@ io.on("connection", (socket) => {
     }
   });
   
-  socket.on("friend_request", ({ to, from }) => {
-    const toSocket = getReceiverSocketId(to);
-    if (toSocket) {
-      io.to(toSocket).emit("friend_request_received", { from });
-    }
-  });
+  socket.on("friend_request", ({ to, from, senderInfo }) => {
+  const toSocket = getReceiverSocketId(to);
+  if (toSocket) {
+    io.to(toSocket).emit("friend_request_received", {
+      type: "FRIEND_REQUEST",
+      data: {
+        from: from,
+        sender: senderInfo
+      }
+    });
+  }
+});
 
   socket.on("friend_request_accepted", ({ to, from }) => {
     const toSocket = getReceiverSocketId(to);
