@@ -1,6 +1,6 @@
 import Group from "../models/group.model.js";
 import User from "../models/user.model.js";
-import GroupInvitation from "../models/groupInvitation.model.js"; 
+import GroupInvitation from "../models/groupInvitation.model.js";
 
 export const createGroup = async (req, res) => {
   try {
@@ -255,5 +255,84 @@ export const deleteGroup = async (req, res) => {
   } catch (error) {
     console.error("Error in deleteGroup:", error);
     res.status(500).json({ message: "Failed to delete group" });
+  }
+};
+
+export const leaveGroup = async (req, res) => {
+  try {
+    const groupId = req.params.groupId;
+    const userId = req.user._id;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    if (!group.members.includes(userId)) {
+      return res
+        .status(400)
+        .json({ message: "You are not a member of this group" });
+    }
+
+    if (group.admin.toString() === userId.toString()) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Admin cannot leave the group. Transfer ownership or delete the group instead.",
+        });
+    }
+
+    await Group.findByIdAndUpdate(groupId, {
+      $pull: { members: userId },
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(groupId).emit("group_member_left", {
+        groupId,
+        userId,
+        message: `${req.user.fullName} left the group`,
+      });
+    }
+
+    res.status(200).json({ message: "Successfully left the group" });
+  } catch (error) {
+    console.error("Error in leaveGroup:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateGroupAvatar = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { avatar } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    if (group.admin.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Only admin can update group avatar" });
+    }
+
+    group.avatar = avatar;
+    await group.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(groupId).emit("group_avatar_updated", {
+        groupId,
+        avatar,
+      });
+    }
+
+    res.status(200).json({ avatar });
+  } catch (error) {
+    console.error("Error in updateGroupAvatar:", error);
+    res.status(500).json({ message: "Error updating group avatar" });
   }
 };
