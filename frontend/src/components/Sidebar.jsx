@@ -130,7 +130,7 @@ const Sidebar = () => {
           }`}
         >
           <span className="lg:hidden">
-            <Users size={16} />
+            <UserPlus size={16} />
           </span>
           <span className="hidden lg:inline">Everyone</span>
         </button>
@@ -141,7 +141,7 @@ const Sidebar = () => {
           }`}
         >
           <span className="lg:hidden">
-            <UserPlus size={16} />
+            <Users size={16} />
           </span>
           <span className="hidden lg:inline">Friends</span>
         </button>
