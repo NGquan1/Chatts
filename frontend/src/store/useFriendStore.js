@@ -72,7 +72,6 @@ export const useFriendStore = create((set, get) => ({
     try {
       await axiosInstance.post(`/friends/decline/${userId}`);
       
-      // Remove the request from local state
       set((state) => ({
         friendRequests: state.friendRequests.filter(
           request => request.sender._id !== userId

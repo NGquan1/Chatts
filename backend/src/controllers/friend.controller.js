@@ -10,22 +10,18 @@ export const sendFriendRequest = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if already friends
     if (receiver.friends?.includes(senderId)) {
       return res.status(400).json({ message: "Already friends" });
     }
 
-    // Check if request already sent
     if (receiver.friendRequests?.includes(senderId)) {
       return res.status(400).json({ message: "Friend request already sent" });
     }
 
-    // Add friend request
     await User.findByIdAndUpdate(userId, {
       $addToSet: { friendRequests: senderId },
     });
 
-    // Emit socket event
     const io = req.app.get("io");
     if (io) {
       io.emit("friend_request", { to: userId, from: senderId });
@@ -40,23 +36,19 @@ export const sendFriendRequest = async (req, res) => {
 
 export const acceptFriendRequest = async (req, res) => {
   try {
-    const { userId } = req.params; // ID of user who sent the request
-    const receiverId = req.user._id; // Current user's ID
+    const { userId } = req.params; 
+    const receiverId = req.user._id; 
 
-    // Validate user IDs
     if (!userId || !receiverId) {
       return res.status(400).json({ message: "Invalid user IDs" });
     }
 
-    // Check if friend request exists
     const receiver = await User.findById(receiverId);
     if (!receiver.friendRequests.includes(userId)) {
       return res.status(400).json({ message: "No friend request found" });
     }
 
-    // Add each user to the other's friends list and remove the friend request
     await Promise.all([
-      // Add to friends lists
       User.findByIdAndUpdate(userId, {
         $addToSet: { friends: receiverId },
       }),
@@ -75,26 +67,22 @@ export const acceptFriendRequest = async (req, res) => {
 
 export const declineFriendRequest = async (req, res) => {
   try {
-    const { userId } = req.params; // ID of user who sent the request
-    const receiverId = req.user._id; // Current user's ID
+    const { userId } = req.params; 
+    const receiverId = req.user._id; 
 
-    // Validate user IDs
     if (!userId || !receiverId) {
       return res.status(400).json({ message: "Invalid user IDs" });
     }
 
-    // Check if friend request exists
     const receiver = await User.findById(receiverId);
     if (!receiver.friendRequests.includes(userId)) {
       return res.status(400).json({ message: "No friend request found" });
     }
 
-    // Remove the friend request
     await User.findByIdAndUpdate(receiverId, {
       $pull: { friendRequests: userId },
     });
 
-    // Emit socket event for real-time update
     const io = req.app.get("io");
     if (io) {
       io.to(userId).emit("friend_request_declined", {
@@ -116,7 +104,6 @@ export const removeFriend = async (req, res) => {
     const { friendId } = req.params;
     const userId = req.user._id;
 
-    // Remove friend from both users' friends arrays
     await User.findByIdAndUpdate(userId, {
       $pull: { friends: friendId },
     });
@@ -125,16 +112,13 @@ export const removeFriend = async (req, res) => {
       $pull: { friends: userId },
     });
 
-    // Get updated user data
     const updatedUser = await User.findById(userId)
       .select("-password")
       .populate("friends", "-password");
 
-    // Emit socket event for realtime update
     if (req.app.get("io")) {
       const io = req.app.get("io");
 
-      // Notify both users
       io.to(userId).emit("friendRemoved", {
         friendId,
         message: "Friend removed successfully",

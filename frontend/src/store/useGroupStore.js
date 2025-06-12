@@ -36,7 +36,6 @@ export const useGroupStore = create((set, get) => ({
     }
   },
 
-  // Add member to group
   addMember: async (groupId, userId) => {
     try {
       const res = await axiosInstance.post("/groups/members/add", {
@@ -97,7 +96,6 @@ export const useGroupStore = create((set, get) => ({
     try {
       await axiosInstance.delete(`/groups/${groupId}`);
 
-      // Update state to remove deleted group
       set((state) => ({
         groups: state.groups.filter((g) => g._id !== groupId),
         selectedGroup:

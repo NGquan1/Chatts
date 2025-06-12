@@ -16,7 +16,7 @@ export function getReceiverSocketId(userId) {
 }
 
 // used to store online users
-const userSocketMap = {}; // {userId: socketId}
+const userSocketMap = {}; 
 
 io.on("connection", (socket) => {
   console.log("A user connected", socket.id);
@@ -24,7 +24,6 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) userSocketMap[userId] = socket.id;
 
-  // send events to all connected clients
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
@@ -33,19 +32,16 @@ io.on("connection", (socket) => {
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 
-    // ==== ✅ GROUP MESSAGE REALTIME ====
   socket.on("sendGroupMessage", ({ groupId, message }) => {
-    // Gửi tin nhắn mới đến tất cả socket đang join groupId đó
     io.to(groupId).emit("newGroupMessage", message);
   });
 
-  // Join group room khi người dùng vào nhóm
   socket.on("joinGroup", (groupId) => {
     socket.join(groupId);
     console.log(`User ${userId} joined group ${groupId}`);
   });
 
-  // Leave room nếu cần (tùy trường hợp)
+
   socket.on("leaveGroup", (groupId) => {
     socket.leave(groupId);
     console.log(`User ${userId} left group ${groupId}`);

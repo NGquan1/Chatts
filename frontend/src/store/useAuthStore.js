@@ -72,9 +72,7 @@ export const useAuthStore = create((set, get) => ({
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
     try {
-      // Check if this is a password update
       if (data.currentPassword) {
-        // Change this line to use the same endpoint as backend
         await axiosInstance.put("/auth/update-profile", {
           currentPassword: data.currentPassword,
           newPassword: data.newPassword,
@@ -83,7 +81,6 @@ export const useAuthStore = create((set, get) => ({
         return;
       }
 
-      // Handle regular profile updates (avatar, etc)
       const res = await axiosInstance.put("/auth/update-profile", data);
       set({ authUser: res.data });
       toast.success("Profile updated successfully");

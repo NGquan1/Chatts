@@ -15,7 +15,7 @@ const ChatHeader = () => {
   const {
     selectedUser,
     setSelectedUser,
-    blockedUsers = [], // Provide default empty array
+    blockedUsers = [], 
     blockUser,
     unblockUser,
   } = useChatStore();
@@ -23,12 +23,10 @@ const ChatHeader = () => {
   const { selectedGroup, setSelectedGroup, deleteGroup } = useGroupStore();
   const { removeFriend } = useFriendStore();
 
-  // Exit early if no chat is selected
   if (!selectedUser && !selectedGroup) return null;
 
   const isGroup = !!selectedGroup;
 
-  // Only calculate these values for direct chats
   const hasBlockedMe =
     !isGroup && selectedUser?.blockedUsers?.includes(authUser?._id);
   const isBlocked = !isGroup && blockedUsers.includes(selectedUser?._id);
@@ -74,7 +72,6 @@ const ChatHeader = () => {
 };
 
 
-  // Add this check
   const isGroupAdmin =
     authUser?._id &&
     selectedGroup?.admin?._id &&

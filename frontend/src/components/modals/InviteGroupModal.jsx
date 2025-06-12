@@ -15,7 +15,6 @@ const InviteGroupModal = ({ groupId, isOpen, onClose }) => {
     const fetchFriends = async () => {
       try {
         const response = await axiosInstance.get("auth/users/friends");
-        // Filter out friends who are already in the group
         const filteredFriends = response.data.filter(
           (friend) => !selectedGroup.members.includes(friend._id)
         );

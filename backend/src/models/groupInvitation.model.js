@@ -24,7 +24,7 @@ const groupInvitationSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 86400, // Automatically delete after 24 hours if not accepted
+    expires: 86400, 
   },
 });
 

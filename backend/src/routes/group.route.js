@@ -16,7 +16,7 @@ const router = express.Router();
 router.post("/create", protectRoute, createGroup);
 router.get("/", protectRoute, getGroups);
 router.post("/members/add", protectRoute, addMember);
-router.post("/:groupId/invite", protectRoute, inviteToGroup); // Added this route
+router.post("/:groupId/invite", protectRoute, inviteToGroup); 
 router.get("/invitations", protectRoute, getGroupInvitations);
 router.post(
   "/invitations/:invitationId/accept",

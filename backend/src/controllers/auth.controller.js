@@ -91,7 +91,6 @@ export const updateProfile = async (req, res) => {
     const { profilePic, currentPassword, newPassword } = req.body;
     const userId = req.user._id;
 
-    // Handle password change
     if (currentPassword && newPassword) {
       if (newPassword.length < 6) {
         return res.status(400).json({
@@ -119,7 +118,6 @@ export const updateProfile = async (req, res) => {
       return res.status(200).json({ message: "Password updated successfully" });
     }
 
-    // Handle profile picture update
     if (profilePic) {
       const uploadResponse = await cloudinary.uploader.upload(profilePic);
       const updatedUser = await User.findByIdAndUpdate(
