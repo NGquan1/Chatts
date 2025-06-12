@@ -7,15 +7,17 @@ import { useGroupStore } from "../store/useGroupStore";
 import InviteGroupModal from "./modals/InviteGroupModal";
 import ConfirmModal from "./modals/ConfirmModal";
 import { useFriendStore } from "../store/useFriendStore";
+import GroupSettingsModal from "./modals/GroupSettingsModal";
 
 const ChatHeader = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
   const {
     selectedUser,
     setSelectedUser,
-    blockedUsers = [], // Provide default empty array
+    blockedUsers = [],
     blockUser,
     unblockUser,
   } = useChatStore();
@@ -23,12 +25,10 @@ const ChatHeader = () => {
   const { selectedGroup, setSelectedGroup, deleteGroup } = useGroupStore();
   const { removeFriend } = useFriendStore();
 
-  // Exit early if no chat is selected
   if (!selectedUser && !selectedGroup) return null;
 
   const isGroup = !!selectedGroup;
 
-  // Only calculate these values for direct chats
   const hasBlockedMe =
     !isGroup && selectedUser?.blockedUsers?.includes(authUser?._id);
   const isBlocked = !isGroup && blockedUsers.includes(selectedUser?._id);
@@ -62,19 +62,17 @@ const ChatHeader = () => {
   };
 
   const handleUnfriend = async () => {
-  try {
-    if (!selectedUser?._id) return;
-    await removeFriend(selectedUser._id);
-    setShowUnfriendConfirm(false);
-    setSelectedUser(null);
-  } catch (error) {
-    console.error("Error unfriending:", error);
-    toast.error("Failed to remove friend");
-  }
-};
+    try {
+      if (!selectedUser?._id) return;
+      await removeFriend(selectedUser._id);
+      setShowUnfriendConfirm(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error("Error unfriending:", error);
+      toast.error("Failed to remove friend");
+    }
+  };
 
-
-  // Add this check
   const isGroupAdmin =
     authUser?._id &&
     selectedGroup?.admin?._id &&
@@ -86,7 +84,10 @@ const ChatHeader = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Avatar */}
-            <div className="avatar">
+            <div
+              className="avatar cursor-pointer"
+              onClick={() => isGroup && setShowGroupSettings(true)}
+            >
               <div className="size-10 rounded-full relative">
                 <img
                   src={
@@ -226,6 +227,14 @@ const ChatHeader = () => {
         title="Remove Friend"
         message="Are you sure you want to remove this friend?"
       />
+
+      {showGroupSettings && (
+        <GroupSettingsModal
+          isOpen={showGroupSettings}
+          onClose={() => setShowGroupSettings(false)}
+          group={selectedGroup}
+        />
+      )}
     </>
   );
 };

@@ -29,7 +29,6 @@ export const useChatStore = create((set, get) => ({
         `/messages/group/${groupId}`,
         messageData
       );
-      // KHÔNG set lại messages ở đây, chờ socket cập nhật
       return res.data;
     } catch (error) {
       toast.error(

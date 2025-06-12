@@ -12,7 +12,7 @@ const groupSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: "https://api.dicebear.com/7.x/initials/svg?seed=default_group", // Default avatar using dicebear
+    default: "https://api.dicebear.com/7.x/initials/svg?seed=default_group", 
   },
   members: [
     {
@@ -31,10 +31,8 @@ const groupSchema = new mongoose.Schema({
   },
 });
 
-// Add pre-save middleware to generate avatar based on group name
 groupSchema.pre("save", function (next) {
   if (this.isNew || this.isModified("name")) {
-    // Generate avatar using group name
     this.avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
       this.name
     )}`;

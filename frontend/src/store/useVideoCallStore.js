@@ -36,14 +36,8 @@ export const useVideoCallStore = create((set, get) => ({
     };
 
     peerConnection.ontrack = (event) => {
-      const remoteStream = event.streams[0];
-      console.log("📥 Callee received track:", remoteStream);
-
-      set({ remoteStream });
-
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-      }
+      console.log("Received remote stream");
+      set({ remoteStream: event.streams[0] });
     };
 
     set({ peerConnection });

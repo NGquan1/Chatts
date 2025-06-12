@@ -25,7 +25,6 @@ function ChatContainer() {
 
   const messageEndRef = useRef(null);
 
-  // Load & subscribe messages
   useEffect(() => {
     const id = selectedGroup?._id || selectedUser?._id;
     if (!id) return;
@@ -55,7 +54,6 @@ function ChatContainer() {
     unsubscribeFromGroupMessages,
   ]);
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -81,7 +79,7 @@ function ChatContainer() {
 
   const handleDeleteMessage = async (messageId) => {
     try {
-      await deleteMessage(messageId); // server emit event, client cập nhật qua socket
+      await deleteMessage(messageId); 
     } catch (error) {
       console.error("Delete message error:", error);
     }
@@ -154,7 +152,6 @@ function ChatContainer() {
                 )}
               </div>
 
-              {/* Nội dung tin nhắn */}
               <div className="chat-bubble flex flex-col">
                 {isDeleted ? (
                   <p className="italic text-gray-500">Message has been deleted</p>

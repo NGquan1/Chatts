@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 
-export const useGroupStore = create((set, get) => ({
+export const useGroupStore = create((set) => ({
   groups: [],
   selectedGroup: null,
   isLoading: false,
@@ -36,7 +36,6 @@ export const useGroupStore = create((set, get) => ({
     }
   },
 
-  // Add member to group
   addMember: async (groupId, userId) => {
     try {
       const res = await axiosInstance.post("/groups/members/add", {
@@ -78,17 +77,37 @@ export const useGroupStore = create((set, get) => ({
     set({ selectedGroup: null });
   },
 
+  updateGroupAvatar: async (groupId, data) => {
+    try {
+      const res = await axiosInstance.put(`/groups/${groupId}/avatar`, data);
+
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, avatar: res.data.avatar } : group
+        ),
+        selectedGroup:
+          state.selectedGroup?._id === groupId
+            ? { ...state.selectedGroup, avatar: res.data.avatar }
+            : state.selectedGroup,
+      }));
+
+      return res.data;
+    } catch (error) {
+      console.error("Error updating group avatar:", error);
+      throw error;
+    }
+  },
+
   leaveGroup: async (groupId) => {
     try {
       await axiosInstance.post(`/groups/${groupId}/leave`);
       set((state) => ({
-        groups: state.groups.filter((g) => g._id !== groupId),
+        groups: state.groups.filter((group) => group._id !== groupId),
         selectedGroup:
           state.selectedGroup?._id === groupId ? null : state.selectedGroup,
       }));
-      toast.success("Left group successfully");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to leave group");
+      console.error("Error leaving group:", error);
       throw error;
     }
   },
@@ -97,7 +116,6 @@ export const useGroupStore = create((set, get) => ({
     try {
       await axiosInstance.delete(`/groups/${groupId}`);
 
-      // Update state to remove deleted group
       set((state) => ({
         groups: state.groups.filter((g) => g._id !== groupId),
         selectedGroup:
@@ -110,5 +128,42 @@ export const useGroupStore = create((set, get) => ({
       toast.error(error.response?.data?.message || "Failed to delete group");
       throw error;
     }
+  },
+
+  initializeGroupSocket: () => {
+    const socket = window.socket;
+    if (!socket) return;
+
+    socket.on("group_member_left", ({ groupId, userId, message }) => {
+      set((state) => ({
+        groups: state.groups.map((group) => {
+          if (group._id === groupId) {
+            return {
+              ...group,
+              members: group.members.filter((memberId) => memberId !== userId),
+            };
+          }
+          return group;
+        }),
+      }));
+      toast.info(message);
+    });
+
+    socket.on("group_avatar_updated", ({ groupId, avatar }) => {
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, avatar } : group
+        ),
+        selectedGroup:
+          state.selectedGroup?._id === groupId
+            ? { ...state.selectedGroup, avatar }
+            : state.selectedGroup,
+      }));
+    });
+
+    return () => {
+      socket.off("group_member_left");
+      socket.off("group_avatar_updated");
+    };
   },
 }));

@@ -30,7 +30,6 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
       });
       onClose();
     } catch (error) {
-      // Error handling is done in the store
     }
   };
 

@@ -21,69 +21,53 @@ export const useFriendStore = create((set, get) => ({
   },
 
   acceptFriendRequest: async (userId) => {
-    try {
-      if (!userId) throw new Error("User ID is required");
-      const response = await axiosInstance.post(`/friends/accept/${userId}`);
-
-      if (response.status === 200) {
-        const { authUser } = useAuthStore.getState();
-        if (authUser) {
-          useAuthStore.setState({
-            authUser: {
-              ...authUser,
-              friends: [...(authUser.friends || []), userId],
-              friendRequests: (authUser.friendRequests || []).filter(
-                (id) => id !== userId
-              ),
-            },
-          });
-        }
-        toast.success("Friend request accepted!");
-      }
-    } catch (error) {
-      console.error("Error accepting friend request:", error);
-      toast.error(
-        error.response?.data?.message || "Could not accept friend request"
-      );
-    }
-  },
-
-  rejectFriendRequest: async (userId) => {
-    try {
-      const response = await axiosInstance.post(`/friends/reject/${userId}`);
-      if (response.status === 200) {
-        const authUser = useAuthStore.getState().authUser;
+  try {
+    const response = await axiosInstance.post(`/friends/accept/${userId}`);
+    if (response.status === 200) {
+      const { authUser } = useAuthStore.getState();
+      if (authUser) {
         useAuthStore.setState({
           authUser: {
             ...authUser,
+            friends: [...(authUser.friends || []), userId],
             friendRequests: (authUser.friendRequests || []).filter(
-              (id) => id !== userId
+              (user) => user._id !== userId
             ),
           },
         });
       }
-    } catch (error) {
-      console.error("Error rejecting friend request:", error);
-      toast.error("Could not reject friend request");
+      toast.success("Friend request accepted!");
     }
-  },
+  } catch (error) {
+    console.error("Error accepting friend request:", error);
+    toast.error(
+      error.response?.data?.message || "Could not accept friend request"
+    );
+  }
+},
 
-  declineFriendRequest: async (userId) => {
-    try {
-      await axiosInstance.post(`/friends/decline/${userId}`);
-      
-      // Remove the request from local state
-      set((state) => ({
-        friendRequests: state.friendRequests.filter(
-          request => request.sender._id !== userId
-        )
-      }));
-
-      toast.success("Friend request declined");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Error declining friend request");
+declineFriendRequest: async (userId) => {
+  try {
+    await axiosInstance.post(`/friends/decline/${userId}`);
+    const { authUser } = useAuthStore.getState();
+    if (authUser) {
+      useAuthStore.setState({
+        authUser: {
+          ...authUser,
+          friendRequests: (authUser.friendRequests || []).filter(
+            (user) => user._id !== userId
+          ),
+        },
+      });
     }
-  },
+    toast.success("Friend request declined");
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message || "Error declining friend request"
+    );
+  }
+},
+
 
   removeFriend: async (friendId) => {
     try {

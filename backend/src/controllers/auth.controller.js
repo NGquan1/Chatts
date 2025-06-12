@@ -91,7 +91,6 @@ export const updateProfile = async (req, res) => {
     const { profilePic, currentPassword, newPassword } = req.body;
     const userId = req.user._id;
 
-    // Handle password change
     if (currentPassword && newPassword) {
       if (newPassword.length < 6) {
         return res.status(400).json({
@@ -119,7 +118,6 @@ export const updateProfile = async (req, res) => {
       return res.status(200).json({ message: "Password updated successfully" });
     }
 
-    // Handle profile picture update
     if (profilePic) {
       const uploadResponse = await cloudinary.uploader.upload(profilePic);
       const updatedUser = await User.findByIdAndUpdate(
@@ -138,11 +136,22 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-export const checkAuth = (req, res) => {
+export const checkAuth = async (req, res) => {
   try {
-    res.status(200).json(req.user);
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .populate({
+        path: "friendRequests",
+        select: "_id fullName profilePic"
+      });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
   } catch (error) {
-    console.log("Error in checkAuth controller", error.message);
+    console.log("Error in checkAuth controller:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
