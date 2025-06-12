@@ -5,6 +5,15 @@ import Group from "../models/group.model.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 
+const formatMessage = (msg) => {
+  const msgObj = msg.toObject();
+  return {
+    ...msgObj,
+    sender: msgObj.senderId,
+    senderId: msgObj.senderId._id
+  };
+};
+
 export const getUserForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
@@ -30,18 +39,10 @@ export const getMessages = async (req, res) => {
         { senderId: userToChatId, receiverId: senderId },
       ],
     })
-    .populate("senderId", "fullName profilePic") // 👈 populate thêm thông tin người gửi
-    .sort({ createdAt: 1 });
+      .populate("senderId", "fullName profilePic")
+      .sort({ createdAt: 1 });
 
-    // Format lại để gửi về đúng định dạng cần có `sender` (giống group chat)
-    const formattedMessages = messages.map(msg => {
-      const msgObj = msg.toObject();
-      return {
-        ...msgObj,
-        sender: msgObj.senderId,
-        senderId: msgObj.senderId._id
-      };
-    });
+    const formattedMessages = messages.map(formatMessage);
 
     res.status(200).json(formattedMessages);
   } catch (error) {
@@ -98,7 +99,7 @@ export const sendMessage = async (req, res) => {
     const { text, image } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
-    // Check if either user has blocked the other
+
     const sender = await User.findById(senderId);
     const receiver = await User.findById(receiverId);
     if (
@@ -112,7 +113,6 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl;
     if (image) {
-      //Upload base64 image to cloudinary
       const uploadResponse = await cloudinary.uploader.upload(image);
       imageUrl = uploadResponse.secure_url;
     }
@@ -126,12 +126,15 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
+    const populatedMessage = await newMessage.populate("senderId", "fullName profilePic");
+    const finalMessage = formatMessage(populatedMessage);
+
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", finalMessage);
     }
 
-    res.status(201).json(newMessage);
+    res.status(201).json(finalMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });
@@ -141,7 +144,6 @@ export const sendMessage = async (req, res) => {
 export const getGroupMessages = async (req, res) => {
   try {
     const { groupId } = req.params;
-    console.log("Fetching messages for group:", groupId);
 
     if (!mongoose.Types.ObjectId.isValid(groupId)) {
       return res.status(400).json({ message: "Invalid group ID format" });
@@ -153,7 +155,7 @@ export const getGroupMessages = async (req, res) => {
     }
 
     const userId = req.user._id;
-    const isMember = group.members.some(memberId => 
+    const isMember = group.members.some(memberId =>
       memberId.toString() === userId.toString()
     );
 
@@ -165,24 +167,14 @@ export const getGroupMessages = async (req, res) => {
       .populate("senderId", "fullName profilePic")
       .sort({ createdAt: 1 });
 
-    // Chuyển senderId -> sender để frontend dùng
-    const formattedMessages = messages.map(msg => {
-      const msgObj = msg.toObject();
-      return {
-        ...msgObj,
-        sender: msgObj.senderId,
-        senderId: msgObj.senderId._id
-      };
-    });
+    const formattedMessages = messages.map(formatMessage);
 
-    console.log(`Found ${formattedMessages.length} messages for group ${groupId}`);
     res.status(200).json(formattedMessages);
-
   } catch (error) {
     console.error("Error in getGroupMessages:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Error fetching group messages",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -209,14 +201,8 @@ export const sendGroupMessage = async (req, res) => {
     const populatedMessage = await Message.findById(newMessage._id)
       .populate("senderId", "fullName profilePic");
 
-    const messageObj = populatedMessage.toObject();
-    const finalMessage = {
-      ...messageObj,
-      sender: messageObj.senderId,
-      senderId: messageObj.senderId._id
-    };
+    const finalMessage = formatMessage(populatedMessage);
 
-    // ✅ Emit socket tới tất cả thành viên trong group
     io.to(groupId).emit("newGroupMessage", finalMessage);
 
     res.status(201).json(finalMessage);
@@ -249,7 +235,7 @@ export const deleteMessage = async (req, res) => {
 
     message.text = "Message has been deleted";
     message.image = null;
-    message.revoked = true; 
+    message.revoked = true;
     await message.save();
 
     if (message.groupId) {
@@ -264,7 +250,7 @@ export const deleteMessage = async (req, res) => {
       if (senderSocketId) {
         io.to(senderSocketId).emit("messageDeleted", {
           messageId,
-          deletedText: "Message has been deleted",
+          deletedText: "Message has beAen deleted",
         });
       }
       if (receiverSocketId && receiverSocketId !== senderSocketId) {
