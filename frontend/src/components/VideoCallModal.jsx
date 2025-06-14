@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useVideoCallStore } from "../store/useVideoCallStore";
-import { Phone, PhoneOff } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { useChatStore } from "../store/useChatStore";
 
 const VideoCallModal = () => {
   const {
@@ -9,6 +10,7 @@ const VideoCallModal = () => {
     remoteStream,
     callStatus,
     caller,
+    receiver, // Changed from recipient to receiver
     endCall,
     acceptCall,
     rejectCall,
@@ -16,6 +18,9 @@ const VideoCallModal = () => {
 
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
+
+  const [micEnabled, setMicEnabled] = useState(true);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -30,6 +35,26 @@ const VideoCallModal = () => {
       }
     }, 300);
   }, [remoteStream]);
+
+  const toggleMic = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setMicEnabled(audioTrack.enabled);
+      }
+    }
+  };
+
+  const toggleCamera = () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setCameraEnabled(videoTrack.enabled);
+      }
+    }
+  };
 
   if (!isCallModalOpen) return null;
 
@@ -79,11 +104,31 @@ const VideoCallModal = () => {
               playsInline
               className="w-full rounded-lg"
             />
-            <span className="absolute bottom-2 left-2 text-white">Remote</span>
+            <span className="absolute bottom-2 left-2 text-white">
+              {callStatus === "receiving"
+                ? caller?.fullName
+                : useChatStore.getState().selectedUser?.fullName}
+            </span>
           </div>
         </div>
 
         <div className="flex justify-center gap-4 mt-4">
+          <button onClick={toggleMic} className="btn btn-circle">
+            {micEnabled ? (
+              <Mic className="h-6 w-6 text-white" />
+            ) : (
+              <MicOff className="h-6 w-6 text-red-500" />
+            )}
+          </button>
+
+          <button onClick={toggleCamera} className="btn btn-circle">
+            {cameraEnabled ? (
+              <Video className="h-6 w-6 text-white" />
+            ) : (
+              <VideoOff className="h-6 w-6 text-red-500" />
+            )}
+          </button>
+
           <button onClick={endCall} className="btn btn-error btn-circle">
             <PhoneOff className="h-6 w-6" />
           </button>
