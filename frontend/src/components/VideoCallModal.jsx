@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useVideoCallStore } from "../store/useVideoCallStore";
 import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from "lucide-react";
-import { useChatStore } from "../store/useChatStore";
 
 const VideoCallModal = () => {
   const {
@@ -10,7 +9,7 @@ const VideoCallModal = () => {
     remoteStream,
     callStatus,
     caller,
-    receiver, // Changed from recipient to receiver
+    remoteUser,
     endCall,
     acceptCall,
     rejectCall,
@@ -105,9 +104,7 @@ const VideoCallModal = () => {
               className="w-full rounded-lg"
             />
             <span className="absolute bottom-2 left-2 text-white">
-              {callStatus === "receiving"
-                ? caller?.fullName
-                : useChatStore.getState().selectedUser?.fullName}
+              {remoteUser?.fullName ?? "Unknown"}
             </span>
           </div>
         </div>
