@@ -13,6 +13,7 @@ export const useVideoCallStore = create((set, get) => ({
   peerConnection: null,
   offer: null,
   iceCandidatesQueue: [],
+  remoteUser: null, 
 
   initializePeerConnection: () => {
     const peerConnection = new RTCPeerConnection({
@@ -46,7 +47,7 @@ export const useVideoCallStore = create((set, get) => ({
 
   startCall: async (receiverId) => {
     try {
-      const { blockedUsers } = useChatStore.getState();
+      const { blockedUsers, selectedUser } = useChatStore.getState();
       const isBlocked = blockedUsers.includes(receiverId);
 
       if (isBlocked) {
@@ -82,6 +83,7 @@ export const useVideoCallStore = create((set, get) => ({
         isCallModalOpen: true,
         callStatus: "calling",
         receiver: receiverId,
+        remoteUser: selectedUser, 
       });
     } catch (error) {
       toast.error("Could not access camera/microphone");
@@ -96,6 +98,7 @@ export const useVideoCallStore = create((set, get) => ({
       callStatus: "receiving",
       caller,
       offer,
+      remoteUser: caller, 
     });
   },
 
@@ -133,19 +136,13 @@ export const useVideoCallStore = create((set, get) => ({
       });
 
       const peerConnection = get().initializePeerConnection();
-      peerConnection.ontrack = (event) => {
-        console.log("📥 Callee received track:", event.streams[0]);
-        set({ remoteStream: event.streams[0] });
-      };
 
       stream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, stream);
       });
 
       const { offer } = get();
-      if (!offer) {
-        throw new Error("No offer available");
-      }
+      if (!offer) throw new Error("No offer available");
 
       await peerConnection.setRemoteDescription(
         new RTCSessionDescription(offer)
@@ -199,6 +196,7 @@ export const useVideoCallStore = create((set, get) => ({
       peerConnection: null,
       offer: null,
       iceCandidatesQueue: [],
+      remoteUser: null, 
     });
   },
 
@@ -214,6 +212,7 @@ export const useVideoCallStore = create((set, get) => ({
       isCallModalOpen: false,
       callStatus: null,
       caller: null,
+      remoteUser: null, 
     });
   },
 
